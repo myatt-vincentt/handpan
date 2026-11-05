@@ -1,0 +1,67 @@
+{
+ "notes": [
+  {
+   "midi": 50,
+   "field": 0,
+   "file": "handpan-587403.m4a",
+   "rate": 0.99769,
+   "gain": 1.12
+  },
+  {
+   "midi": 57,
+   "field": 1,
+   "file": "handpan-587411.m4a",
+   "rate": 0.99885,
+   "gain": 0.84
+  },
+  {
+   "midi": 58,
+   "field": 2,
+   "file": "handpan-587411.m4a",
+   "rate": 1.05824,
+   "gain": 0.83
+  },
+  {
+   "midi": 60,
+   "field": 3,
+   "file": "handpan-587402.m4a",
+   "rate": 1.00116,
+   "gain": 1.25
+  },
+  {
+   "midi": 62,
+   "field": 4,
+   "file": "handpan-587407.m4a",
+   "rate": 1.00058,
+   "gain": 1.0
+  },
+  {
+   "midi": 64,
+   "field": 5,
+   "file": "handpan-587410.m4a",
+   "rate": 1.00116,
+   "gain": 1.1
+  },
+  {
+   "midi": 65,
+   "field": 6,
+   "file": "handpan-587408.m4a",
+   "rate": 0.99654,
+   "gain": 0.76
+  },
+  {
+   "midi": 67,
+   "field": 7,
+   "file": "handpan-587409.m4a",
+   "rate": 0.99942,
+   "gain": 0.78
+  },
+  {
+   "midi": 69,
+   "field": 8,
+   "file": "handpan-587416.m4a",
+   "rate": 1.0,
+   "gain": 0.97
+  }
+ ]
+}

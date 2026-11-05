@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import { DefaultLoadingManager } from "three";
 
+import { sound } from "./audio";
 import { enter, handpan, start, useHandpanVersion } from "./state";
 
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
@@ -101,6 +102,10 @@ DefaultLoadingManager.onProgress = (_url, loaded, total) => {
 /** How far the background loading has got, 0..1 (never goes back). */
 const useLoaded = (active: boolean) => {
   const [, tick] = useState(0);
+  // The recordings load in the background (the sound itself waits for Start).
+  useEffect(() => {
+    sound.preload();
+  }, []);
   useEffect(() => {
     if (!active) return undefined;
     const t = window.setInterval(() => tick((n) => n + 1), 120);

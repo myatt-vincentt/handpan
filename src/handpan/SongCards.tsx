@@ -1,16 +1,18 @@
 // The songs' page UI, on Night glass:
 //   - the songs card (from the dock's note button): each song with Learn and
 //     Play, its best stars, and Slower for Play
-//   - while learning: a card with the next note's sign, big, and its field
+//   - while learning (top left; on a tall screen under the corner camera): a
+//     card with the next note's sign, big, and its field
 //     ("Field 3 · 3 fingers"), how far through the song you are, and a gentle
 //     hint after a wrong field
 //   - while playing: the next note's sign with a ring that closes on its beat
-//   - at the end: the stars (Play) or a tick (Learn), again and next
+//   - at the end, in the same place: the stars (Play) or a tick (Learn),
+//     again and next
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { sound } from "./audio";
 import { GHOST_COLOR } from "./GhostHands";
-import { DOCK_BOTTOM, DOCK_HEIGHT } from "./layout";
+import { DOCK_BOTTOM, DOCK_HEIGHT, GUTTER } from "./layout";
 import { signOf, type FieldId } from "./notes";
 import { SignIcon } from "./SignStrip";
 import { bestStars, nextSongId, startSong } from "./SongPlayer";
@@ -66,6 +68,8 @@ export const SONG_CSS = `
   transition: transform 300ms ${EASE}; }
 .hp-ring { position: absolute; inset: -4px; border-radius: 22px; pointer-events: none;
   border: 2px solid ${ACCENT}; opacity: 0; }
+.hp-learn.corner, .hp-stars.corner { left: ${GUTTER}px; top: ${GUTTER}px; transform: none;
+  animation: hp-fade 360ms ${EASE} both; }
 @media (prefers-reduced-motion: reduce) { .hp-card, .hp-stars, .hp-learn, .hp-learn-pic.next { animation: none; } }
 `;
 
@@ -272,9 +276,9 @@ const NoteCard = ({ place }: { place: Place }) => {
   const total = s.chart.notes.length;
   return (
     <div
-      className="hp-learn hp-glass"
+      className={`hp-learn hp-glass ${place.tall ? "" : "corner"}`}
       data-hud="note-card"
-      style={{ top: place.tall ? place.underCamera : 16 }}
+      style={place.tall ? { top: place.underCamera } : undefined}
       role="status"
       aria-live="polite"
     >
@@ -310,8 +314,8 @@ const FinishCard = ({ place }: { place: Place }) => {
   return (
     <div
       data-hud="stars"
-      className="hp-stars hp-glass"
-      style={{ top: place.tall ? place.underCamera : "14%" }}
+      className={`hp-stars hp-glass ${place.tall ? "" : "corner"}`}
+      style={place.tall ? { top: place.underCamera } : undefined}
     >
       {f.mode === "play" ? (
         <span

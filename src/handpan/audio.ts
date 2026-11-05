@@ -1,6 +1,11 @@
-// The handpan's sound, made in code with Web Audio (no recordings).
+// The handpan's sound: recordings of a real handpan, one per note (a note
+// without its own recording plays its neighbour, re-pitched), played with
+// Web Audio. A harder strike is louder and a little brighter; damping fades
+// everything out quickly; striking a field that still rings fades the old
+// note first. Until the recordings have loaded (or if they can't), a tone
+// made in code stands in.
 //
-// A struck field rings like steel: a few pure partials (the note, its octave
+// The stand-in tone: a struck field rings like steel: a few pure partials (the note, its octave
 // and the fifth above that, each a hair out of tune so they shimmer against a
 // twin) with a soft attack and a long, slow decay; the higher partials die
 // first, so a note starts bright and settles into a warm hum. A short soft
@@ -10,7 +15,8 @@
 // small room's echo and a gentle limiter. Silent until Start (browsers only
 // start audio on a tap).
 //
-//   partials + knock → voice gain → master → dry + room → limiter → speakers
+//   recording (or partials + knock) → filter → voice gain → master
+//     → dry + room → limiter → speakers
 import { FIELD_MIDI, frequency, type FieldId } from "./notes";
 
 const MASTER = 0.6;
@@ -42,7 +48,7 @@ const RESTRIKE = 0.04;
 type Voice = {
   field: FieldId;
   gain: GainNode;
-  sources: OscillatorNode[];
+  sources: AudioScheduledSourceNode[];
   /** When it has died away (AudioContext time). */
   end: number;
   ending: boolean;
@@ -69,9 +75,82 @@ const RELEASE = 0.16;
 /** What has been played (read by the development debug object). */
 export const meter = {
   unlocked: false,
+  /** Recordings loaded. */
+  samples: 0,
   /** The loudest sample sent out so far (1 = full scale). */
   peak: 0,
   events: [] as Array<{ t: number; field: FieldId; velocity: number }>,
+};
+
+/** The recordings: a list of notes (manifest), each a file, its re-pitch and gain. */
+const SOUNDS = "/sounds/";
+const MANIFEST = "handpan.json";
+type ManifestNote = {
+  midi: number;
+  field: FieldId;
+  file: string;
+  rate: number;
+  gain: number;
+};
+type Sample = {
+  buffer: AudioBuffer;
+  offset: number;
+  rate: number;
+  gain: number;
+};
+const samples = new Map<FieldId, Sample>();
+/** The recordings' level, and the strike's brightness (low-pass, Hz) soft to hard. */
+const SAMPLE = { level: 0.9, dark: 2200, bright: 12000 };
+
+/** Where the sound starts in a decoded file (s): the encoder pads the start. */
+const onsetOf = (b: AudioBuffer) => {
+  const d = b.getChannelData(0);
+  let peak = 0;
+  for (let i = 0; i < d.length; i += 1) peak = Math.max(peak, Math.abs(d[i]));
+  const th = peak * 0.03;
+  for (let i = 0; i < d.length; i += 1)
+    if (Math.abs(d[i]) >= th) return Math.max(0, i / b.sampleRate - 0.002);
+  return 0;
+};
+
+const decode = (c: AudioContext, bytes: ArrayBuffer) =>
+  new Promise<AudioBuffer>((resolve, reject) => {
+    // The callback form also works on older Safari.
+    c.decodeAudioData(bytes, resolve, reject);
+  });
+
+/** Loads the recordings; a note that fails keeps the stand-in tone. */
+const loadSamples = async (c: AudioContext) => {
+  try {
+    const res = await fetch(`${SOUNDS}${MANIFEST}`);
+    const { notes } = (await res.json()) as { notes: ManifestNote[] };
+    const buffers = new Map<string, Promise<AudioBuffer>>();
+    await Promise.all(
+      notes.map(async (n) => {
+        try {
+          let p = buffers.get(n.file);
+          if (!p) {
+            p = fetch(`${SOUNDS}${n.file}`)
+              .then((r) => r.arrayBuffer())
+              .then((bytes) => decode(c, bytes));
+            buffers.set(n.file, p);
+          }
+          const buffer = await p;
+          samples.set(n.field, {
+            buffer,
+            offset: onsetOf(buffer),
+            rate: n.rate,
+            gain: n.gain,
+          });
+          meter.samples = samples.size;
+        } catch {
+          // this note keeps the stand-in tone
+        }
+      }),
+    );
+  } catch {
+    // no recordings: the stand-in tone plays every note
+  }
 };
 
 /** A small room's echo: noise dying away, a little darker as it fades. */
@@ -194,11 +273,15 @@ export const sound = {
 
   meter,
 
-  /** Sets up the sound (no sound yet). */
+  /** Sets up the sound and starts loading the recordings (no sound yet). */
   preload() {
     if (ctx) return;
     ctx = makeContext();
+    if (ctx) void loadSamples(ctx);
   },
+
+  /** Development: play the stand-in tone instead of the recordings. */
+  useSamples: true,
 
   /** Start: the browser lets the sound play from here on. */
   unlock() {
@@ -239,11 +322,43 @@ export const sound = {
       fadeOut(old, at, 0.05);
     }
 
+    const sample = this.useSamples ? samples.get(field) : undefined;
+    if (sample) {
+      const gain = c.createGain();
+      gain.gain.value = SAMPLE.level * sample.gain * v ** 0.9;
+      // A soft strike is a little darker.
+      const lp = c.createBiquadFilter();
+      lp.type = "lowpass";
+      lp.frequency.value = SAMPLE.dark + (SAMPLE.bright - SAMPLE.dark) * v;
+      lp.Q.value = 0.5;
+      lp.connect(gain).connect(master);
+      const src = c.createBufferSource();
+      src.buffer = sample.buffer;
+      src.playbackRate.value = sample.rate;
+      src.connect(lp);
+      src.start(at, sample.offset);
+      const length = (sample.buffer.duration - sample.offset) / sample.rate;
+      voices.push({
+        field,
+        gain,
+        sources: [src],
+        end: at + length,
+        ending: false,
+      });
+      meter.events.push({
+        t: Math.round(c.currentTime * 1000),
+        field,
+        velocity: Number(v.toFixed(2)),
+      });
+      if (meter.events.length > 40) meter.events.shift();
+      return;
+    }
+
     const gain = c.createGain();
     // Loudness grows with the strike, a little less than in step.
     gain.gain.value = 0.34 * v ** 0.9;
     gain.connect(master);
-    const sources: OscillatorNode[] = [];
+    const sources: AudioScheduledSourceNode[] = [];
     let end = at;
     // A harder strike is brighter: more of the upper partials.
     const bright = 0.55 + 0.45 * v;
