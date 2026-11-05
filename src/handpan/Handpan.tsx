@@ -7,7 +7,7 @@
 // Each view has its own placement: level in front of you in Player, turned
 // round and tilted towards you in Front (each with its own stand). Switching
 // views turns and tilts it along with the camera (strict ease-out).
-import { useEffect, useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
   AdditiveBlending,
@@ -175,10 +175,15 @@ export const Handpan = () => {
     [],
   );
 
-  useEffect(() => {
+  // The model hangs under the shared holder, added here (not as a child in
+  // the tree) so a reload or a retried load never leaves a second copy.
+  useLayoutEffect(() => {
+    if (!root) return undefined;
+    pan.holder.add(root);
     handpan.root = root;
     return () => {
-      handpan.root = null;
+      pan.holder.remove(root);
+      if (handpan.root === root) handpan.root = null;
     };
   }, [root]);
 
@@ -258,9 +263,5 @@ export const Handpan = () => {
     });
   });
 
-  return (
-    <primitive object={pan.holder}>
-      {root ? <primitive object={root} /> : null}
-    </primitive>
-  );
+  return <primitive object={pan.holder} />;
 };
