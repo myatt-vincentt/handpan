@@ -12,6 +12,8 @@ import { enter, handpan, start, useHandpanVersion } from "./state";
 
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const ACCENT = "#f4d968";
+/** After Start, the camera gets this long before the studio opens without it (ms). */
+const CAMERA_WAIT_MS = 3000;
 /** The page fades out over this long (ms). */
 const LEAVE_MS = 450;
 /** The 3D files to load at least (so the bar can't fill early). */
@@ -114,7 +116,7 @@ const useLoaded = (active: boolean) => {
 
 /**
  * The home page. `ready` is the camera running; `failed`, the camera refused
- * (the page then gives way to the camera message).
+ * or missing (the studio then opens without it).
  */
 export const Home = ({
   ready,
@@ -128,7 +130,16 @@ export const Home = ({
   const [gone, setGone] = useState(false);
   const { share, done } = useLoaded(!gone);
 
-  const through = handpan.started && done && (ready || failed);
+  // No camera within a few seconds of Start (none, refused, or a prompt
+  // left open): the studio opens anyway, played by taps and keys.
+  const [gaveUp, setGaveUp] = useState(false);
+  const loadedAndStarted = handpan.started && done;
+  useEffect(() => {
+    if (!loadedAndStarted) return undefined;
+    const t = window.setTimeout(() => setGaveUp(true), CAMERA_WAIT_MS);
+    return () => window.clearTimeout(t);
+  }, [loadedAndStarted]);
+  const through = loadedAndStarted && (ready || failed || gaveUp);
   useEffect(() => {
     if (through) setLeaving(true);
   }, [through]);

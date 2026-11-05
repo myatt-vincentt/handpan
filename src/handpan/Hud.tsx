@@ -16,6 +16,7 @@ import {
 } from "react";
 import { Html } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
+import { useXRReady } from "@vincentt-xr/sdk/low-level";
 
 import { GHOST_COLOR } from "./GhostHands";
 import {
@@ -78,6 +79,10 @@ const CSS = `
   background: transparent; cursor: pointer; border-radius: 16px; outline: none; }
 .hp-cam:focus-visible { box-shadow: 0 0 0 2px ${ACCENT}; }
 .hp-show { position: absolute; right: ${GUTTER}px; top: ${GUTTER}px; }
+.hp-nocam { position: absolute; display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border-radius: 16px; font: 600 12px/1.35 system-ui, -apple-system, sans-serif; color: rgb(255 255 255 / .9);
+  animation: hp-fade 260ms ${EASE} both; }
+.hp-nocam svg { flex: none; color: rgb(255 255 255 / .7); }
 .hp-gone { opacity: 0; pointer-events: none; }
 .hp-howto-back { position: absolute; inset: 0; pointer-events: auto; background: rgb(10 10 14 / .25);
   animation: hp-fade 260ms ${EASE} both; }
@@ -133,6 +138,14 @@ const CameraIcon = () => (
   <Icon>
     <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" />
     <circle cx="12" cy="13" r="3.5" />
+  </Icon>
+);
+/** A camera, crossed out. */
+const NoCameraIcon = () => (
+  <Icon size={18}>
+    <path d="M2.5 2.5l19 19" />
+    <path d="M9 6h6.5L17 8h3a1 1 0 0 1 1 1v8.5M18 19H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h3" />
+    <path d="M10 10.6a3.5 3.5 0 0 0 4.4 4.4" />
   </Icon>
 );
 const HelpIcon = () => (
@@ -299,6 +312,9 @@ export const Hud = () => {
   const height = useThree((s) => s.size.height);
   const frame = frameRect(width, height);
   const hidden = handpan.camHidden;
+  // No camera picture (none, or refused): the corner says how to play instead.
+  const camera = useXRReady();
+  const noCamera = handpan.entered && !camera;
 
   const buttons: DockButton[] = [
     {
@@ -340,10 +356,25 @@ export const Hud = () => {
       <style>{CSS}</style>
       <style>{STRIP_CSS}</style>
       <div className="hp-root">
+        {noCamera ? (
+          <div
+            className="hp-nocam hp-glass"
+            data-hud="no-camera"
+            role="status"
+            style={{
+              right: GUTTER,
+              top: GUTTER,
+              width: Math.min(frame.width, 220),
+            }}
+          >
+            <NoCameraIcon />
+            <span>No camera: tap the handpan or press 1–6</span>
+          </div>
+        ) : null}
         <button
           type="button"
           data-hud="camera"
-          className={`hp-cam ${hidden ? "hp-gone" : ""}`}
+          className={`hp-cam ${hidden || noCamera ? "hp-gone" : ""}`}
           aria-label="Hide your camera"
           style={{
             left: frame.left,
@@ -356,7 +387,7 @@ export const Hud = () => {
         <button
           type="button"
           data-hud="camera-show"
-          className={`hp-btn hp-glass hp-show ${hidden ? "" : "hp-gone"}`}
+          className={`hp-btn hp-glass hp-show ${hidden && !noCamera ? "" : "hp-gone"}`}
           aria-label="Show your camera"
           onClick={toggleCam}
         >
