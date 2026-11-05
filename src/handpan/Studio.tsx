@@ -96,11 +96,12 @@ const ON_AIR = {
 };
 /**
  * The cove's wash on the walls, on top of the bake (which already holds its
- * steady glow): off by day; at night it breathes with the music.
+ * steady glow): off by day; at night it breathes gently with the music
+ * (stronger, it washes the whole room towards white on every note).
  */
 const COVE = {
   day: { color: [1.0, 0.86, 0.66], strength: 0 },
-  night: { color: [0.8, 0.72, 1.0], strength: 0.05, music: 0.35 },
+  night: { color: [0.8, 0.72, 1.0], strength: 0.05, music: 0.06 },
 };
 
 /** How bright the handpan's reflections are at night (the night probe). */
@@ -127,12 +128,13 @@ export const studioLight = { night: 0 };
  * The LEDs' colour flash on hits, by day and at night: on the cove strip, on
  * the low strip, as a wash on the walls and on the handpan. By day it is softer
  * (it competes with the window). Kept low: brighter, the tone curve turns
- * the colour white.
+ * the colour white. At night lowest of all: a coloured breath in the room,
+ * while the handpan's own gold flash and ripples carry the hit.
  */
 const LED_FLASH = {
-  cove: { day: 1.1, night: 1.4 },
-  strip: { day: 1.2, night: 1.5 },
-  wash: { day: 0.25, night: 0.45 },
+  cove: { day: 1.1, night: 0.75 },
+  strip: { day: 1.2, night: 0.8 },
+  wash: { day: 0.25, night: 0.08 },
   pan: { day: 0.3, night: 0.25 },
 };
 /** Each strike's share of a flash: a run adds up, a single note glows softly. */
@@ -532,9 +534,9 @@ export const Studio = () => {
       glow[name]?.forEach((m) => m.color.copy(tmp.a).lerp(tmp.b, k));
     });
     // The music's pulse (at night the cove breathes with it).
-    const beat = Math.min(1.5, 0.5 * lv.level + 0.8 * lv.low);
+    const beat = Math.min(1, 0.5 * lv.level + 0.8 * lv.low);
     const cove = glow.LedCove ?? [];
-    cove.forEach((m) => m.color.multiplyScalar(1 + 0.6 * beat * k));
+    cove.forEach((m) => m.color.multiplyScalar(1 + 0.2 * beat * k));
     const cd = COVE.day;
     const cn = COVE.night;
     bake.uCove.value
