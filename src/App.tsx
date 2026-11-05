@@ -23,6 +23,8 @@ import { mountViewerBeacon, reportSession } from "@vincentt-xr/analytics";
 import { openConsoleChannel } from "@vincentt-xr/harness";
 import { PerspectiveCamera } from "@react-three/drei";
 
+import { Home } from "./handpan/Home";
+import { handpan, useHandpanVersion } from "./handpan/state";
 import { Scene } from "./Scene";
 import { PreviewAnchors } from "./PreviewAnchors";
 import { FrameContainer } from "./FrameContainer";
@@ -54,7 +56,12 @@ import type { MediaPreset } from "./MediaSourceControl";
 // the recorder never sees the buffer change size mid-file.
 const RECORD = recordRequest();
 const RECORD_CANVAS = RECORD.enabled
-  ? { dpr: Math.min(typeof window === "undefined" ? 1 : window.devicePixelRatio || 1, 2) }
+  ? {
+      dpr: Math.min(
+        typeof window === "undefined" ? 1 : window.devicePixelRatio || 1,
+        2,
+      ),
+    }
   : {};
 
 const FALLBACK_VIDEO_URL =
@@ -204,28 +211,6 @@ export const MediaSourceBinder = ({
   return null;
 };
 
-const Loading = ({ shouldFadeOut }: { shouldFadeOut: boolean }) => (
-  <div
-    className={`flex w-full h-full flex-col items-center justify-center gap-6 bg-[var(--color-bg-app)] text-[var(--color-fg-app)] ${
-      shouldFadeOut ? "animate-fadeOut [animation-delay:0.3s]" : ""
-    }`}
-  >
-    <svg
-      viewBox="0 0 2040 2040"
-      fill="currentColor"
-      className="h-16 w-16 animate-breathe"
-      aria-hidden="true"
-    >
-      <path d="M1736.06,394.62l-195.11,1201.52c-4.4,27.09-30.43,49.25-57.87,49.25h-416.79c17.53,0,31.13-15.24,29.14-32.66l-35.06-306.39,48.9-796.11c.76-13.07,12.02-25.27,24.98-27.2l601.81-88.41Z" />
-      <path d="M1074.53,1645.38H456.54L304.16,427.57c-2.17-17.47,11.49-32.95,29.14-32.95H912.07c29.37,0,55.64,23.98,58.33,53.23l98.2,858.49,35.06,306.39c1.99,17.41-11.61,32.66-29.14,32.66Z" />
-    </svg>
-    <div className="flex flex-col items-center gap-1">
-      <div className="text-base font-medium tracking-wide">Vincentt</div>
-      <div className="text-sm text-[var(--color-fg-muted)]">Make it real.</div>
-    </div>
-  </div>
-);
-
 const CameraError = () => {
   const xrError = useXRError();
   return (
@@ -258,6 +243,9 @@ const CameraError = () => {
 };
 
 export const Shell = () => {
+  // Handpan: the camera starts on the home page's Start (framed, at once:
+  // a framed page plays a sample video, no camera prompt).
+  useHandpanVersion();
   const ready = useXRReady();
   const xrError = useXRError();
   const reason = xrError?.reason;
@@ -388,9 +376,10 @@ export const Shell = () => {
   return (
     <FrameContainer>
       <XRScene
-        loadingComponent={<Loading shouldFadeOut={ready} />}
+        // Handpan: the home page stands in for the loading screen.
+        loadingComponent={<span />}
         errorComponent={<CameraError />}
-        loadingTransitionDuration={1000}
+        loadingTransitionDuration={0}
         style={{ width: "100%", height: "100%" }}
         // `canvasProps`, NOT a bare `frameloop` — this is `<XRScene>`, the SDK's
         // component, which owns the `<Canvas>`; r3f's prop does not exist here.
@@ -398,9 +387,14 @@ export const Shell = () => {
         // A later path needing `preserveDrawingBuffer` (a screenshot, an
         // annotation capture) merges into `canvasProps.gl` rather than replacing
         // `canvasProps`, which would drop the freeze.
-        canvasProps={{ frameloop: paused ? "never" : "always", ...RECORD_CANVAS }}
+        canvasProps={{
+          frameloop: paused ? "never" : "always",
+          ...RECORD_CANVAS,
+        }}
       >
-        <MediaSourceBinder onSourceSelected={setSelected} />
+        {handpan.started || isFramed() ? (
+          <MediaSourceBinder onSourceSelected={setSelected} />
+        ) : null}
         <PerspectiveCamera makeDefault position={[0, 0, 5]} fov={45} />
         <VideoBackground
           segmentationMask={undefined}
@@ -412,6 +406,7 @@ export const Shell = () => {
         <Scene />
         <PreviewAnchors />
       </XRScene>
+      <Home ready={ready} failed={!!xrError} />
       <MediaSourceControl value={selected} onChange={applySource} />
       {RECORD.enabled ? <CaptureControls audio={RECORD.audio} /> : null}
       {MobileXRAcceptanceHarness ? (

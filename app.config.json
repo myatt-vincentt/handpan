@@ -1,8 +1,9 @@
 {
-  "title": "XR App - Vincentt",
-  "description": "An AR experience built with Vincentt",
+  "title": "Handpan",
+  "description": "Play a steel handpan with your hands: your right hand shows a sign to choose a note, your left hand pats to play it, in a 3D studio with LEDs that glow with the notes",
+  "url": "https://handpan.vincentt.app",
   "image": "/images/og-default.jpg",
-  "imageAlt": "Vincentt — Augmented Reality App builder",
+  "imageAlt": "Handpan — a camera experience built with Vincentt",
   "imageWidth": 1200,
   "imageHeight": 630,
   "imageType": "image/jpeg"
