@@ -51,16 +51,6 @@ export const PLACE: Record<View, { pos: Vector3; quat: Quaternion }> = {
   },
 };
 
-/**
- * Where the note hand's ghost waits, beside the handpan on your right
- * (offset from the handpan's centre, room axes, m).
- */
-export const NOTE_HAND: Record<View, Vector3> = {
-  player: new Vector3(-0.3, 0.08, -0.22),
-  front: new Vector3(0.33, -0.04, -0.02),
-  top: new Vector3(-0.32, 0.06, -0.12),
-};
-
 // ---------------------------------------------------------------- the views
 
 // Front: from the room, a little above, the handpan in the middle.
@@ -101,7 +91,7 @@ export const viewPose = (view: View, aspect: number, out: CameraPose) => {
 };
 /* eslint-enable no-param-reassign */
 
-/** The points a view keeps on screen: the handpan's rim and top, and the note hand. */
+/** The points a view keeps on screen: the handpan's rim and its top. */
 export const keepPoints = (view: View): Vector3[] => {
   const { pos, quat } = PLACE[view];
   const pts: Vector3[] = [];
@@ -114,9 +104,6 @@ export const keepPoints = (view: View): Vector3[] => {
     );
   }
   pts.push(new Vector3(0, PAN_TOP, 0).applyQuaternion(quat).add(pos));
-  // The note hand: its wrist and its raised fingertips.
-  const hand = pos.clone().add(NOTE_HAND[view]);
-  pts.push(hand.clone(), hand.clone().add(new Vector3(0, 0.18, 0)));
   return pts;
 };
 

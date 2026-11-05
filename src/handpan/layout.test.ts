@@ -22,10 +22,10 @@ describe("the layout", () => {
     expect(m.frameLeft).toBeLessThan(1);
   });
 
-  it("keeps the handpan's rim, its top and the note hand in each view", () => {
+  it("keeps the handpan's rim and its top in each view", () => {
     (["front", "player"] as const).forEach((v) => {
       const pts = keepPoints(v);
-      expect(pts.length).toBe(15);
+      expect(pts.length).toBe(13);
       // Every point is above the floor and near the handpan.
       pts.forEach((p) => {
         expect(p.y).toBeGreaterThan(0.3);

@@ -1,11 +1,8 @@
-// The two ghost hands:
-//   - the strike hand (gold, your left) hovers palm-down over the chosen
-//     field (a little higher as you lift your palm) and pats it when it is
-//     struck: it drops flat onto the steel and lifts back
-//   - the note hand (blue, your right) waits beside the handpan showing the
-//     sign of the chosen field: a fist for the Ding, one to four fingers,
-//     an open hand, or the rock sign for field 6
-// Both move with the handpan when the view changes.
+// The ghost strike hand (gold, your left): it hovers palm-down over the
+// chosen field (a little higher as you lift your palm) and pats it when it is
+// struck: it drops flat onto the steel and lifts back. It moves with the
+// handpan when the view changes. (Your note hand shows as the chosen field's
+// blue glow and on the sign strip.)
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Group, Matrix4, Quaternion, Vector3, type Object3D } from "three";
@@ -14,9 +11,8 @@ import { ease } from "./CameraRig";
 import { dressGhost, ghostMaterial } from "./ghost";
 import { pan } from "./Handpan";
 import { hands } from "./Hands";
-import { NOTE_HAND } from "./layout";
 import { MODELS, useOptionalModel } from "./models";
-import { SIGNS, type FieldId, type Sign } from "./notes";
+import type { FieldId } from "./notes";
 import { handpan, strikesSince } from "./state";
 
 export const GHOST_COLOR = { strike: "#F2B21C", note: "#2F8CFF" };
@@ -31,9 +27,6 @@ const PAT = { down: 0.04, hold: 0.1, up: 0.3 };
 const FOLLOW = 12;
 /** The strike hand reaches from where you stand (pan's own frame, m). */
 const REACH_FROM = new Vector3(0, 0, -0.5);
-/** The note hand leans this far forward in the Player view (rad). */
-const NOTE_LEAN = (40 * Math.PI) / 180;
-const NOTE_LEAN_TOP = (62 * Math.PI) / 180;
 
 const m4 = new Matrix4();
 const vx = new Vector3();
@@ -44,35 +37,11 @@ const handQuat = (fingers: Vector3, back: Vector3, out: Quaternion) => {
   return out.setFromRotationMatrix(m4);
 };
 
-/**
- * The note hand in each view: upright, palm to you and mirrored like a
- * selfie (Front); leaning forward (Player); leaning further, so it shows
- * from above (Top).
- */
-const NOTE_POSE = {
-  front: handQuat(
-    new Vector3(0, 1, 0),
-    new Vector3(0, 0, -1),
-    new Quaternion(),
-  ),
-  player: handQuat(
-    new Vector3(0, Math.cos(NOTE_LEAN), Math.sin(NOTE_LEAN)),
-    new Vector3(0, Math.sin(NOTE_LEAN), -Math.cos(NOTE_LEAN)),
-    new Quaternion(),
-  ),
-  top: handQuat(
-    new Vector3(0, Math.cos(NOTE_LEAN_TOP), Math.sin(NOTE_LEAN_TOP)),
-    new Vector3(0, Math.sin(NOTE_LEAN_TOP), -Math.cos(NOTE_LEAN_TOP)),
-    new Quaternion(),
-  ),
-};
-
 const nodes = (root: Object3D, names: string[]) =>
   Object.fromEntries(names.map((n) => [n, root.getObjectByName(n) ?? null]));
 
 export const GhostHands = () => {
   const strikeSrc = useOptionalModel(MODELS.ghostStrike);
-  const noteSrc = useOptionalModel(MODELS.ghostNote);
 
   const strike = useMemo(() => {
     const holder = new Group();
@@ -85,24 +54,10 @@ export const GhostHands = () => {
     return { holder, hover: n.Hover, pat: n.Pat, palm };
   }, [strikeSrc]);
 
-  const note = useMemo(() => {
-    const holder = new Group();
-    if (!noteSrc) return null;
-    const root = noteSrc.clone(true);
-    dressGhost(root, ghostMaterial(GHOST_COLOR.note));
-    holder.add(root);
-    const signs = nodes(
-      root,
-      SIGNS.map((s) => `Sign_${s}`),
-    ) as Record<string, Object3D | null>;
-    return { holder, signs };
-  }, [noteSrc]);
-
   const st = useRef({
     field: 3 as FieldId,
     seq: handpan.seq,
     patAt: -1e9,
-    sign: "fist" as Sign,
     pos: new Vector3(),
     quat: new Quaternion(),
     started: false,
@@ -169,26 +124,6 @@ export const GhostHands = () => {
         s.started = true;
       }
     }
-
-    // The note hand shows the chosen field's sign.
-    if (note) {
-      const { chosen } = handpan;
-      if (chosen !== null && chosen <= 6) s.sign = SIGNS[chosen];
-      SIGNS.forEach((sg) => {
-        const o = note.signs[`Sign_${sg}`];
-        if (o) o.visible = sg === s.sign;
-      });
-      const k = pan.front;
-      tmp.p
-        .lerpVectors(NOTE_HAND.player, NOTE_HAND.top, pan.top)
-        .lerp(NOTE_HAND.front, k)
-        .add(pan.holder.position);
-      note.holder.position.copy(tmp.p);
-      tmp.q.slerpQuaternions(NOTE_POSE.player, NOTE_POSE.top, pan.top);
-      note.holder.quaternion.copy(tmp.q).slerp(NOTE_POSE.front, k);
-      // Mirrored like a selfie in Front (it flips halfway through a switch).
-      note.holder.scale.set(k >= 0.5 ? -1 : 1, 1, 1);
-    }
   });
 
   // The strike hand rides on the handpan (it moves with it between views).
@@ -200,5 +135,5 @@ export const GhostHands = () => {
     };
   }, [strike]);
 
-  return note ? <primitive object={note.holder} /> : null;
+  return null;
 };

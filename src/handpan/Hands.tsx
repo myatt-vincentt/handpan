@@ -1,7 +1,7 @@
 // Your two hands, read from the hand tracker every frame:
 //   - your right hand (the note hand) shows a sign; once it holds, that field
-//     is chosen (it glows blue, the blue ghost shows the sign, the strip
-//     lights it). A lost note hand keeps its sign.
+//     is chosen (it glows blue and the strip lights its sign). A lost note
+//     hand keeps its sign.
 //   - your left hand (the strike hand) pats with an open palm: each pat plays
 //     the chosen field, as loud as the pat was quick. A fist, or taking the
 //     hand away, damps every ringing note.
@@ -26,7 +26,7 @@ export const HAND: { strike: Side; note: Side } = {
   note: "right",
 };
 
-/** What the ghost hands and the corner camera read about your hands. */
+/** What the ghost hand and the corner camera read about your hands. */
 export const hands = {
   /** The strike hand is in view, and how far above its usual height its palm is (palm lengths). */
   strikeTracked: false,

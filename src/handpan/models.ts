@@ -9,9 +9,8 @@ import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.j
 export const MODELS = {
   /** The handpan and its stands. */
   handpan: "/models/handpan.glb",
-  /** The ghost hands: the strike hand (hover, pat) and the note hand (its signs). */
+  /** The ghost strike hand (hover, pat). */
   ghostStrike: "/models/ghost-hand-strike.glb",
-  ghostNote: "/models/ghost-hand-note.glb",
   /** The recording studio, its baked light and its light probe. */
   studio: "/models/studio.glb",
   lightmapDay: "/models/studio-lightmap-day.webp",

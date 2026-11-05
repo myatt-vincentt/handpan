@@ -1,7 +1,8 @@
 // Handpan: a steel handpan in a recording studio, played with your two
 // hands. Your right hand shows a sign to choose a note (a fist for the Ding,
 // one to four fingers, an open hand, the rock sign); your left hand pats to
-// play it. Two ghost hands, gold and blue, show what each hand does. Taps,
+// play it. A gold ghost hand pats the steel with you; the chosen field glows
+// blue. Taps,
 // clicks and the number keys play too. Your camera sits small in the corner.
 //
 //   CameraRig.tsx     the views (front, player), fitted to the screen (layout.ts)
@@ -9,7 +10,7 @@
 //   Handpan.tsx       the handpan: its fields' glow and ripples, its stands
 //   Hands.tsx         your hands: the note hand's signs (signs.ts), the strike
 //                     hand's pats (pat.ts)
-//   GhostHands.tsx    the ghost hands (ghost.ts)
+//   GhostHands.tsx    the ghost strike hand (ghost.ts)
 //   PointerInput.tsx  taps, clicks and keys
 //   CameraFrame.tsx   your camera in the corner
 //   Hud.tsx           the bottom dock, the sign strip (SignStrip.tsx), how to play
