@@ -35,6 +35,10 @@ export const STRIP_CSS = `
 .hp-chip svg { position: relative; }
 .hp-chip-num { position: relative; font: 650 10px/1 system-ui, -apple-system, sans-serif; color: rgb(255 255 255 / .7); }
 .hp-chip.on .hp-chip-num { color: #fff; }
+.hp-chip.target { animation: hp-target 1.4s ease-in-out infinite; }
+@keyframes hp-target { 0%, 100% { box-shadow: inset 0 1px 1px rgb(255 255 255 / .22), 0 0 0 0 rgb(220 230 255 / 0); }
+  50% { box-shadow: inset 0 1px 1px rgb(255 255 255 / .22), 0 0 0 3px rgb(220 230 255 / .55); } }
+@media (prefers-reduced-motion: reduce) { .hp-chip.target { animation: none; box-shadow: 0 0 0 2px rgb(220 230 255 / .55); } }
 `;
 
 /** Which fingers are up in each sign: thumb, index, middle, ring, pinky. */
@@ -112,6 +116,11 @@ export const SignStrip = () => {
     const tick = () => {
       const now = performance.now() / 1000;
       chips.current.forEach((c) => {
+        // A song's next field: its chip pulses.
+        c.flash?.parentElement?.classList.toggle(
+          "target",
+          handpan.target === c.field,
+        );
         if (!c.flash) return;
         const e = (now - handpan.struckAt[c.field]) / FLASH;
         // eslint-disable-next-line no-param-reassign

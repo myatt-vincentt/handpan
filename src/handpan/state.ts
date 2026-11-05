@@ -7,6 +7,7 @@ import type { Object3D } from "three";
 import { sound } from "./audio";
 import { VIEWS, type View } from "./layout";
 import { FIELD_MIDI, type FieldId } from "./notes";
+import type { Mode, Session } from "./session";
 
 export type PlaySource = "strike" | "pointer" | "keys";
 export type Side = "left" | "right";
@@ -61,6 +62,25 @@ export const handpan = {
   started: false,
   /** The home page has gone (the handpan is in front of you). */
   entered: false,
+  /** The songs card is open. */
+  songCard: false,
+  /** A song being learnt or played (null: free play). */
+  session: null as Session | null,
+  /** Play runs slower (0.75×). */
+  slow: false,
+  /** The song just finished: which, how, its stars (Play), when (performance.now() ms). */
+  finish: null as {
+    id: string;
+    mode: Mode;
+    stars: number;
+    at: number;
+  } | null,
+  /** The field the song wants next (it pulses), or null. */
+  target: null as FieldId | null,
+  /** Sparkles to show: a field and when (performance.now() / 1000). */
+  sparkles: [] as { field: FieldId; at: number; big: boolean }[],
+  /** A song is listening for strikes (set by the song player). */
+  songHit: null as ((field: FieldId) => void) | null,
   /** The "how to play" steps card is open. */
   howTo: false,
   /** It opened right after Start: it closes by itself (performance.now() ms). */
@@ -166,6 +186,7 @@ export const strike = (field: FieldId, velocity: number, by: PlaySource) => {
   });
   if (handpan.log.length > 60) handpan.log.shift();
   if (by !== "strike" && field <= 6) choose(field);
+  handpan.songHit?.(field);
   // The first pat by hand closes the how-to card.
   if (by === "strike" && handpan.howTo) closeHowTo();
 };

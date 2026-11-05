@@ -4,6 +4,7 @@
 //     chosen it
 //   - gold when it is struck (as loud as the strike), with three thin gold
 //     rings rippling out over the steel
+// A song's next field breathes softly white.
 // Each view has its own placement: level in front of you in Player, turned
 // round and tilted towards you in Front (each with its own stand). Switching
 // views turns and tilts it along with the camera (strict ease-out).
@@ -39,6 +40,8 @@ const GOLD_GLOW = new Color(0.9, 0.36, 0.0);
 
 /** How bright a field glows: under the mouse, chosen, and struck at full loudness. */
 const GLOW = { hover: 0.3, chosen: 0.75, struck: 1.3 };
+/** A song's next field: its soft breathing glow (colour, strength, breaths per second). */
+const PULSE = { color: new Color(0.75, 0.82, 1.0), level: 0.45, rate: 1.4 };
 /** A strike's gold flash fades over this long (s). */
 const FLASH = 0.9;
 /** The ripples: three rings, each this much wider than the field, over this long (s). */
@@ -235,6 +238,13 @@ export const Handpan = () => {
       const gold = GLOW.struck * handpan.struckV[id] * f * dim;
       tmp.copy(BLUE).multiplyScalar(blue * dim * (1 - Math.min(1, 2 * f)));
       m.emissive.copy(tmp).add(tmp2.copy(GOLD_GLOW).multiplyScalar(gold));
+      // A song's next field breathes softly (white), so you know where to go.
+      if (handpan.target === id) {
+        const breath = 0.5 + 0.5 * Math.sin(now * Math.PI * 2 * PULSE.rate);
+        m.emissive.add(
+          tmp2.copy(PULSE.color).multiplyScalar(PULSE.level * dim * breath),
+        );
+      }
     });
 
     // New strikes send out ripples.

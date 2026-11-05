@@ -53,6 +53,10 @@ let master: GainNode | null = null;
 let unlocked = false;
 let noise: AudioBuffer | null = null;
 const voices: Voice[] = [];
+/** The song backing's sounds (so a stop can silence them). */
+const backing: { gain: GainNode; source: AudioScheduledSourceNode }[] = [];
+/** The backing's levels: under the handpan, never over it. */
+const BACKING = { drone: 0.05, shaker: 0.035, tick: 0.08 };
 
 let analyser: AnalyserNode | null = null;
 let wave: Float32Array | null = null;
@@ -302,5 +306,101 @@ export const sound = {
     if (!c) return;
     const at = c.currentTime;
     voices.filter((v) => !v.ending).forEach((v) => fadeOut(v, at, DAMP));
+  },
+
+  /** The sound's clock (s), or null before Start. */
+  now() {
+    return ctx && unlocked ? ctx.currentTime : null;
+  },
+
+  /**
+   * The song backing's drone: a soft low root and its fifth, from `when`
+   * for `length` seconds (it swells in and fades out slowly).
+   */
+  drone(midi: number, when: number, length: number) {
+    const c = ctx;
+    if (!c || !master || !unlocked) return;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0, when);
+    g.gain.linearRampToValueAtTime(BACKING.drone, when + 1.2);
+    g.gain.setValueAtTime(
+      BACKING.drone,
+      Math.max(when + 1.2, when + length - 1),
+    );
+    g.gain.linearRampToValueAtTime(0, when + length);
+    const lp = c.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 420;
+    lp.connect(g).connect(master);
+    [
+      [0, 1],
+      [7, 0.45],
+      [12, 0.25],
+    ].forEach(([interval, level]) => {
+      const o = c.createOscillator();
+      o.type = "triangle";
+      o.frequency.value = frequency(midi + interval);
+      const og = c.createGain();
+      og.gain.value = level;
+      o.connect(og).connect(lp);
+      o.start(when);
+      o.stop(when + length + 0.1);
+      backing.push({ gain: g, source: o });
+    });
+  },
+
+  /** The backing's shaker: a soft tick of bright noise at `when`. */
+  shaker(when: number, accent = false) {
+    const c = ctx;
+    if (!c || !master || !unlocked || !noise) return;
+    const src = c.createBufferSource();
+    src.buffer = noise;
+    const hp = c.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.value = 6500;
+    const g = c.createGain();
+    const level = accent ? BACKING.shaker * 1.5 : BACKING.shaker;
+    g.gain.setValueAtTime(0, when);
+    g.gain.linearRampToValueAtTime(level, when + 0.012);
+    g.gain.setTargetAtTime(0, when + 0.015, 0.03);
+    src.connect(hp).connect(g).connect(master);
+    src.start(when);
+    src.stop(when + 0.1);
+    backing.push({ gain: g, source: src });
+  },
+
+  /** A count-in tick at `when` (the bar's first one a little higher). */
+  tick(when: number, accent = false) {
+    const c = ctx;
+    if (!c || !master || !unlocked) return;
+    const o = c.createOscillator();
+    o.type = "sine";
+    o.frequency.value = accent ? 1760 : 1320;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0, when);
+    g.gain.linearRampToValueAtTime(BACKING.tick, when + 0.004);
+    g.gain.setTargetAtTime(0, when + 0.005, 0.025);
+    o.connect(g).connect(master);
+    o.start(when);
+    o.stop(when + 0.15);
+    backing.push({ gain: g, source: o });
+  },
+
+  /** Stops the backing (a song stopped or paused). */
+  stopBacking() {
+    const c = ctx;
+    if (!c) return;
+    const at = c.currentTime;
+    backing.forEach((b) => {
+      b.gain.gain.cancelScheduledValues(at);
+      b.gain.gain.setValueAtTime(b.gain.gain.value, at);
+      b.gain.gain.setTargetAtTime(0, at, 0.08);
+      try {
+        b.source.stop(at + 0.5);
+      } catch {
+        // not started yet, or already stopped
+      }
+    });
+    backing.length = 0;
   },
 };

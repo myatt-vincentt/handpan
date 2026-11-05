@@ -14,6 +14,8 @@
 //   PointerInput.tsx  taps, clicks and keys
 //   CameraFrame.tsx   your camera in the corner
 //   Hud.tsx           the bottom dock, the sign strip (SignStrip.tsx), how to play
+//   SongPlayer.tsx    songs to learn and play along with (songs.ts, session.ts),
+//                     their cards (SongCards.tsx), sparkles (Sparkles.tsx)
 //   audio.ts          the handpan's sound, made in code
 //   notes.ts          the nine fields and their notes
 //   Home.tsx          the home page (Start), shown over the scene while it loads
@@ -26,6 +28,8 @@ import { GhostHands } from "./GhostHands";
 import { Handpan } from "./Handpan";
 import { Hands } from "./Hands";
 import { Hud } from "./Hud";
+import { SongPlayer } from "./SongPlayer";
+import { Sparkles } from "./Sparkles";
 import { PointerInput } from "./PointerInput";
 import { handpan, useHandpanVersion } from "./state";
 import { Studio } from "./Studio";
@@ -51,12 +55,14 @@ export const HandpanScene = () => {
         <Studio />
         <Handpan />
         <GhostHands />
+        <Sparkles />
         <Loaded />
       </Suspense>
       {handpan.started ? <HandTracker targetFps={HAND_FPS} /> : null}
       <Hands />
       <CameraFrame />
       <PointerInput />
+      <SongPlayer />
       <Hud />
     </>
   );

@@ -1,10 +1,13 @@
 // The page UI, minimal, on Night glass:
 //   - your camera, top right (CameraFrame.tsx): tap it to tuck it away; a
 //     small camera button then sits in the corner to bring it back
-//   - one floating dock, bottom centre, icons only: the view (front,
-//     player), day / night, and how to play. A small label shows over a
+//   - one floating dock, bottom centre, icons only: songs (the songs card;
+//     while one runs it stops it, and a thin line along the dock shows how
+//     far through it is), the view (front, player, top), day / night, and
+//     how to play. A small label shows over a
 //     button on hover, or for a moment after a tap.
 //   - the sign strip just above the dock (SignStrip.tsx)
+//   - the songs card, the next note's card and the end card (SongCards.tsx)
 //   - the how-to-play steps: the two hands and the seven signs (after
 //     Start, or from the dock)
 import {
@@ -30,6 +33,8 @@ import {
 } from "./layout";
 import { SIGN_FIELDS, signOf } from "./notes";
 import { SignIcon, SignStrip, STRIP_CSS } from "./SignStrip";
+import { NoteIcon, SONG_CSS, SongCards, StopIcon } from "./SongCards";
+import { progressLine, stopSong } from "./SongPlayer";
 import {
   closeHowTo,
   handpan,
@@ -55,6 +60,10 @@ const CSS = `
   box-shadow: inset 0 1px 1px rgb(255 255 255 / .22), 0 8px 24px rgb(0 0 0 / .22); }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .hp-glass { background: rgb(35 37 40 / .82); } }
+.hp-dock-line { position: absolute; left: 18px; right: 18px; top: -1px; height: 2px; border-radius: 2px;
+  background: rgb(255 255 255 / .12); overflow: hidden; }
+.hp-dock-line > div { height: 100%; background: ${ACCENT}; transform-origin: 0 50%;
+  transform: scaleX(0); box-shadow: 0 0 8px ${ACCENT}; }
 .hp-dock { position: absolute; left: 50%; transform: translateX(-50%);
   bottom: calc(env(safe-area-inset-bottom, 0px) + ${DOCK_BOTTOM}px);
   display: flex; gap: 6px; padding: 6px; border-radius: 999px; pointer-events: auto; }
@@ -318,6 +327,25 @@ export const Hud = () => {
   const noCamera = handpan.entered && !camera;
 
   const buttons: DockButton[] = [
+    handpan.session
+      ? {
+          id: "songs",
+          label: "Stop",
+          icon: <StopIcon />,
+          on: true,
+          act: stopSong,
+        }
+      : {
+          id: "songs",
+          label: "Songs",
+          icon: <NoteIcon />,
+          on: handpan.songCard,
+          act: () => {
+            handpan.songCard = !handpan.songCard;
+            closeHowTo();
+            handpan.changed();
+          },
+        },
     {
       id: "view",
       label: VIEW_LABEL[handpan.view],
@@ -342,6 +370,7 @@ export const Hud = () => {
           return;
         }
         handpan.howTo = true;
+        handpan.songCard = false;
         handpan.changed();
       },
     },
@@ -356,6 +385,7 @@ export const Hud = () => {
     >
       <style>{CSS}</style>
       <style>{STRIP_CSS}</style>
+      <style>{SONG_CSS}</style>
       <div className="hp-root">
         {noCamera ? (
           <div
@@ -450,11 +480,24 @@ export const Hud = () => {
         ) : null}
 
         {handpan.entered ? <SignStrip /> : null}
+        <SongCards
+          tall={height > width}
+          underCamera={frame.top + frame.height + 12}
+        />
 
         <div
           className={`hp-dock hp-glass ${handpan.dockPulseAt !== null ? "pulse" : ""}`}
           data-hud="dock"
         >
+          {handpan.session ? (
+            <div className="hp-dock-line" aria-hidden="true">
+              <div
+                ref={(el) => {
+                  progressLine.el = el;
+                }}
+              />
+            </div>
+          ) : null}
           {buttons.map((b) => {
             const showTip = tapped === b.id;
             return (
