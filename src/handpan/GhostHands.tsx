@@ -33,6 +33,7 @@ const FOLLOW = 12;
 const REACH_FROM = new Vector3(0, 0, -0.5);
 /** The note hand leans this far forward in the Player view (rad). */
 const NOTE_LEAN = (40 * Math.PI) / 180;
+const NOTE_LEAN_TOP = (62 * Math.PI) / 180;
 
 const m4 = new Matrix4();
 const vx = new Vector3();
@@ -43,7 +44,11 @@ const handQuat = (fingers: Vector3, back: Vector3, out: Quaternion) => {
   return out.setFromRotationMatrix(m4);
 };
 
-/** The note hand in each view: upright, palm to you and mirrored like a selfie (Front); leaning forward (Player). */
+/**
+ * The note hand in each view: upright, palm to you and mirrored like a
+ * selfie (Front); leaning forward (Player); leaning further, so it shows
+ * from above (Top).
+ */
 const NOTE_POSE = {
   front: handQuat(
     new Vector3(0, 1, 0),
@@ -53,6 +58,11 @@ const NOTE_POSE = {
   player: handQuat(
     new Vector3(0, Math.cos(NOTE_LEAN), Math.sin(NOTE_LEAN)),
     new Vector3(0, Math.sin(NOTE_LEAN), -Math.cos(NOTE_LEAN)),
+    new Quaternion(),
+  ),
+  top: handQuat(
+    new Vector3(0, Math.cos(NOTE_LEAN_TOP), Math.sin(NOTE_LEAN_TOP)),
+    new Vector3(0, Math.sin(NOTE_LEAN_TOP), -Math.cos(NOTE_LEAN_TOP)),
     new Quaternion(),
   ),
 };
@@ -170,14 +180,12 @@ export const GhostHands = () => {
       });
       const k = pan.front;
       tmp.p
-        .lerpVectors(NOTE_HAND.player, NOTE_HAND.front, k)
+        .lerpVectors(NOTE_HAND.player, NOTE_HAND.top, pan.top)
+        .lerp(NOTE_HAND.front, k)
         .add(pan.holder.position);
       note.holder.position.copy(tmp.p);
-      note.holder.quaternion.slerpQuaternions(
-        NOTE_POSE.player,
-        NOTE_POSE.front,
-        k,
-      );
+      tmp.q.slerpQuaternions(NOTE_POSE.player, NOTE_POSE.top, pan.top);
+      note.holder.quaternion.copy(tmp.q).slerp(NOTE_POSE.front, k);
       // Mirrored like a selfie in Front (it flips halfway through a switch).
       note.holder.scale.set(k >= 0.5 ? -1 : 1, 1, 1);
     }

@@ -103,8 +103,25 @@ const COVE = {
   night: { color: [0.8, 0.72, 1.0], strength: 0.05, music: 0.35 },
 };
 
-/** How bright the handpan's reflections are at night (the day probe, dimmed). */
-const NIGHT_REFLECTIONS = 0.6;
+/** How bright the handpan's reflections are at night (the night probe). */
+const NIGHT_REFLECTIONS = 1;
+
+/**
+ * At night the handpan stands in a warm pool of stage light, the brightest,
+ * cleanest thing in the room: a key from the front right, a soft light from
+ * straight above (the domes and dents read from above), and a rim from behind.
+ * Narrow beams with soft edges, so the room keeps its night colours around it.
+ */
+const STAGE = {
+  key: { pos: [0.75, 2.3, 1.35], color: "#ffe6c8", angle: 15, night: 34 },
+  top: { pos: [0.05, 2.95, -0.1], color: "#fff1e0", angle: 11, night: 30 },
+  rim: { pos: [-0.65, 2.25, -1.35], color: "#ffeedd", angle: 15, night: 20 },
+};
+/** Where the stage lights aim (the handpan's middle, either view). */
+const STAGE_AIM = [0, 0.62, -0.05] as const;
+
+/** How dark the night is now (0 day … 1 night), for the handpan's own glows. */
+export const studioLight = { night: 0 };
 
 /**
  * The LEDs' colour flash on hits, by day and at night: on the cove strip, on
@@ -116,7 +133,7 @@ const LED_FLASH = {
   cove: { day: 1.1, night: 1.4 },
   strip: { day: 1.2, night: 1.5 },
   wash: { day: 0.25, night: 0.45 },
-  pan: { day: 0.4, night: 0.6 },
+  pan: { day: 0.3, night: 0.25 },
 };
 /** Each strike's share of a flash: a run adds up, a single note glows softly. */
 const NOTE_SHARE = 0.8;
@@ -135,8 +152,8 @@ const RIG: Record<string, Level> = {
   fillFront: { day: 110 / (Math.PI ** 2 * 2.5 * 2.5), night: 0 },
   cans: { day: 0, night: 90 / (4 * Math.PI ** 2) },
   lamp: { day: 0, night: 60 / (4 * Math.PI ** 2) },
-  // The LED strip on the handpan at half the render's strength (gentler purple).
-  led: { day: 0, night: 80 / (Math.PI ** 2 * 4.5 * 0.05) },
+  // The LED strip barely touches the handpan (the steel would turn purple).
+  led: { day: 0, night: 18 / (Math.PI ** 2 * 4.5 * 0.05) },
   // A warm-white key from above the front right keeps the steel warm.
   key: { day: 0, night: 320 / (4 * Math.PI ** 2) },
 };
@@ -263,7 +280,10 @@ export const Studio = () => {
     MODELS.lightmapNight,
     MODELS.coveMask,
   ]);
-  const envDay = useLoader(RGBELoader, MODELS.envDay);
+  const [envDay, envNight] = useLoader(RGBELoader, [
+    MODELS.envDay,
+    MODELS.envNight,
+  ]);
   const gl = useThree((s) => s.gl);
   const scene = useThree((s) => s.scene);
   const size = useThree((s) => s.size);
@@ -345,14 +365,17 @@ export const Studio = () => {
     return { room: r, glow: glowing };
   }, [model, dayMap, bake, speaker]);
 
-  // The light probe (pre-filtered once).
-  const envMap = useMemo(() => {
+  // The light probes, day and night (pre-filtered once).
+  const envMaps = useMemo(() => {
     const pmrem = new PMREMGenerator(gl);
-    envDay.mapping = EquirectangularReflectionMapping;
-    const out = pmrem.fromEquirectangular(envDay).texture;
+    const made = [envDay, envNight].map((t) => {
+      // eslint-disable-next-line no-param-reassign
+      t.mapping = EquirectangularReflectionMapping;
+      return pmrem.fromEquirectangular(t).texture;
+    });
     pmrem.dispose();
-    return out;
-  }, [gl, envDay]);
+    return { day: made[0], night: made[1] };
+  }, [gl, envDay, envNight]);
 
   // The handpan's live lights, built once.
   const rig = useMemo(() => {
@@ -391,6 +414,19 @@ export const Studio = () => {
     key.position.set(0.8, 2.6, 1.2);
     key.target.position.set(0, 0.6, -0.2);
     shadowed(key);
+    const stage = Object.values(STAGE).map((st) => {
+      const l = new SpotLight(
+        st.color,
+        0,
+        6,
+        (st.angle * Math.PI) / 180,
+        0.85,
+        2,
+      );
+      l.position.set(st.pos[0], st.pos[1], st.pos[2]);
+      l.target.position.set(STAGE_AIM[0], STAGE_AIM[1], STAGE_AIM[2]);
+      return l;
+    });
     const all: Object3D[] = [
       win,
       sun,
@@ -403,7 +439,8 @@ export const Studio = () => {
       key.target,
     ];
     cans.forEach((c) => all.push(c, c.target));
-    return { win, sun, fillBack, fillFront, cans, lamp, led, key, all };
+    stage.forEach((l) => all.push(l, l.target));
+    return { win, sun, fillBack, fillFront, cans, lamp, led, key, stage, all };
   }, []);
 
   // The shell's two default lights are turned off: the studio brings its own.
@@ -431,9 +468,10 @@ export const Studio = () => {
     const before = scene.environment;
     return () => {
       scene.environment = before;
-      envMap.dispose();
+      envMaps.day.dispose();
+      envMaps.night.dispose();
     };
-  }, [scene, envMap]);
+  }, [scene, envMaps]);
 
   const blend = useRef({ k: handpan.night ? 1 : 0, from: 0, to: 0, at: -10 });
   const tmp = useMemo(() => ({ a: new Color(), b: new Color() }), []);
@@ -569,10 +607,19 @@ export const Studio = () => {
       mix(RIG.led, k) + a * RIG.led.night * mix(LED_FLASH.pan, k);
     rig.key.intensity = mix(RIG.key, k);
     rig.key.castShadow = k >= 0.5;
-    // The handpan reflects the day probe at night too, dimmed: the night probe
-    // alone leaves the steel a dull copper.
-    if (scene.environment !== envMap) scene.environment = envMap;
-    scene.environmentIntensity = 1 + (NIGHT_REFLECTIONS - 1) * k;
+    // The stage light on the handpan at night.
+    const stageLevels = Object.values(STAGE);
+    rig.stage.forEach((l, i) => {
+      // eslint-disable-next-line no-param-reassign
+      l.intensity = stageLevels[i].night * k;
+    });
+    studioLight.night = k;
+    // The handpan reflects the room as it is: the day probe by day, the
+    // night one at night (swapped halfway, where both are dim).
+    const env = k < 0.5 ? envMaps.day : envMaps.night;
+    if (scene.environment !== env) scene.environment = env;
+    const dip = 1 - 0.5 * (1 - Math.abs(2 * k - 1));
+    scene.environmentIntensity = (1 + (NIGHT_REFLECTIONS - 1) * k) * dip;
   });
 
   return (

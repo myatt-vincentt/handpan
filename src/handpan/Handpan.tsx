@@ -29,6 +29,7 @@ import { dressModel } from "./look";
 import { MODELS, useOptionalModel } from "./models";
 import { FIELD_IDS, FIELD_NODE, FIELD_OVAL, type FieldId } from "./notes";
 import { handpan, strikesSince } from "./state";
+import { studioLight } from "./Studio";
 
 /** The note hand's blue and the strike hand's gold (linear light, as glows). */
 export const BLUE = new Color("#2F8CFF");
@@ -56,8 +57,9 @@ export const pan = {
   holder: new Group(),
   /** Each field's centre point (on its dome, +y out of the steel). */
   centers: new Map<FieldId, Object3D>(),
-  /** 0 Player … 1 Front, eased. */
+  /** 0 Player … 1 Front, eased; and 0 … 1 Top, eased. */
   front: handpan.view === "front" ? 1 : 0,
+  top: handpan.view === "top" ? 1 : 0,
 };
 
 const ellipseRing = (a: number, b: number, width: number) => {
@@ -187,7 +189,12 @@ export const Handpan = () => {
     };
   }, [root]);
 
-  const sw = useRef({ view: handpan.view as View, at: -10, from: pan.front });
+  const sw = useRef({
+    view: handpan.view as View,
+    at: -10,
+    from: pan.front,
+    fromTop: pan.top,
+  });
   const seq = useRef(handpan.seq);
   const next = useRef(0);
   const tmp = useMemo(() => new Color(), []);
@@ -200,11 +207,14 @@ export const Handpan = () => {
     const s = sw.current;
     if (s.view !== handpan.view) {
       s.from = pan.front;
+      s.fromTop = pan.top;
       s.view = handpan.view;
       s.at = now;
     }
     const to = handpan.view === "front" ? 1 : 0;
     pan.front = s.from + (to - s.from) * ease((now - s.at) / GLIDE);
+    const toTop = handpan.view === "top" ? 1 : 0;
+    pan.top = s.fromTop + (toTop - s.fromTop) * ease((now - s.at) / GLIDE);
     placeAt(pan.front, pan.holder);
     if (stands?.player) stands.player.visible = pan.front < 0.5;
     if (stands?.front) stands.front.visible = pan.front >= 0.5;
@@ -218,8 +228,12 @@ export const Handpan = () => {
       // The flash fades gently (it is a glow, not a motion), and the gold
       // takes the blue's place while it lasts.
       const f = e >= 0 && e < 1 ? (1 - e) ** 2 : 0;
-      const gold = GLOW.struck * handpan.struckV[id] * f;
-      tmp.copy(BLUE).multiplyScalar(blue * (1 - Math.min(1, 2 * f)));
+      // At night the glows are gentler (the dark room makes them look
+      // stronger, and the tone curve would turn them white); the big Ding
+      // glows less than the small fields.
+      const dim = (1 - 0.45 * studioLight.night) * (id === 0 ? 0.7 : 1);
+      const gold = GLOW.struck * handpan.struckV[id] * f * dim;
+      tmp.copy(BLUE).multiplyScalar(blue * dim * (1 - Math.min(1, 2 * f)));
       m.emissive.copy(tmp).add(tmp2.copy(GOLD_GLOW).multiplyScalar(gold));
     });
 

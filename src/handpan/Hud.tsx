@@ -267,10 +267,11 @@ const STEPS: Step[] = [
 
 // ---------------------------------------------------------------- the dock
 
-const VIEW_MARK: Record<View, string> = { front: "1", player: "2" };
+const VIEW_MARK: Record<View, string> = { front: "1", player: "2", top: "3" };
 const VIEW_LABEL: Record<View, string> = {
   front: "View: Front",
   player: "View: Player",
+  top: "View: Top",
 };
 
 type DockButton = {

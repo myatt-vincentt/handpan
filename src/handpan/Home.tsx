@@ -17,7 +17,7 @@ const CAMERA_WAIT_MS = 3000;
 /** The page fades out over this long (ms). */
 const LEAVE_MS = 450;
 /** The 3D files to load at least (so the bar can't fill early). */
-const MIN_FILES = 8;
+const MIN_FILES = 9;
 
 const CSS = `
 .dh-root { position: fixed; inset: 0; z-index: 40; color: #fff; display: flex; flex-direction: column;

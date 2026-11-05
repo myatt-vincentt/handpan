@@ -19,6 +19,7 @@ export const MODELS = {
   /** Where the LED cove washes the walls (on the lightmaps' layout). */
   coveMask: "/models/studio-cove-mask.webp",
   envDay: "/models/studio-env-day.hdr",
+  envNight: "/models/studio-env-night.hdr",
 };
 
 type Loaded = { scene: Object3D } | null;

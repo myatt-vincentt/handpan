@@ -6,8 +6,8 @@
 // handpan is turned round and tilted towards you so every field shows.
 import { Euler, Quaternion, Vector3 } from "three";
 
-export type View = "front" | "player";
-export const VIEWS: View[] = ["front", "player"];
+export type View = "front" | "player" | "top";
+export const VIEWS: View[] = ["front", "player", "top"];
 
 /** Screen shape → 0 (laptop, wide) … 1 (phone, tall). */
 export const phoneness = (aspect: number) =>
@@ -39,6 +39,11 @@ export const PLACE: Record<View, { pos: Vector3; quat: Quaternion }> = {
     pos: new Vector3(0, 0.6, -0.05),
     quat: new Quaternion(),
   },
+  // Level, as in Player (seen from straight above).
+  top: {
+    pos: new Vector3(0, 0.6, -0.05),
+    quat: new Quaternion(),
+  },
   // Turned round so the same fields face you, tilted 24° towards you.
   front: {
     pos: new Vector3(0, 0.66, -0.05),
@@ -53,12 +58,14 @@ export const PLACE: Record<View, { pos: Vector3; quat: Quaternion }> = {
 export const NOTE_HAND: Record<View, Vector3> = {
   player: new Vector3(-0.3, 0.08, -0.22),
   front: new Vector3(0.33, -0.04, -0.02),
+  top: new Vector3(-0.32, 0.06, -0.12),
 };
 
 // ---------------------------------------------------------------- the views
 
 // Front: from the room, a little above, the handpan in the middle.
 // Player: from where you stand, looking down at it.
+// Top: from above, tipped a little towards you, every field in view.
 const FRONT = {
   laptop: { pos: [0, 1.02, 1.05], target: [0, 0.7, -0.08], vfov: 37 },
   phone: { pos: [0.06, 1.04, 1.16], target: [0.06, 0.7, -0.05], hfov: 34 },
@@ -67,7 +74,11 @@ const PLAYER = {
   laptop: { pos: [0, 1.26, -0.52], target: [0, 0.5, -0.1], vfov: 42 },
   phone: { pos: [-0.08, 1.38, -0.62], target: [-0.08, 0.52, -0.05], hfov: 46 },
 };
-const VIEW_POSES = { front: FRONT, player: PLAYER };
+const TOP = {
+  laptop: { pos: [0, 1.78, -0.3], target: [-0.04, 0.6, -0.05], vfov: 36 },
+  phone: { pos: [-0.06, 1.62, -0.28], target: [-0.06, 0.6, -0.05], hfov: 44 },
+};
+const VIEW_POSES = { front: FRONT, player: PLAYER, top: TOP };
 
 /* eslint-disable no-param-reassign */
 /** A view's camera for this screen shape (before the fit). */
