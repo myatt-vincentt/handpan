@@ -11,6 +11,7 @@ import { useThree } from "@react-three/fiber";
 import { Vector3 } from "three";
 
 import { meter, sound } from "./audio";
+import { hands } from "./Hands";
 import { cameraOverride } from "./CameraRig";
 import type { View } from "./layout";
 import type { FieldId } from "./notes";
@@ -22,6 +23,8 @@ const DevDebug = () => {
   useEffect(() => {
     const api = {
       handpan,
+      /** What the hand reading sees (tracked, lift). */
+      hands,
       camera,
       scene,
       meter,

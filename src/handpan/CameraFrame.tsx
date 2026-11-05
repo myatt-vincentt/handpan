@@ -26,6 +26,7 @@ import {
 } from "@vincentt-xr/sdk/low-level";
 
 import { GHOST_COLOR } from "./GhostHands";
+import { HAND } from "./Hands";
 import { FRAME_RADIUS, frameRect } from "./layout";
 import { handpan } from "./state";
 
@@ -35,9 +36,12 @@ const handColour = (hex: string) => {
   c.convertLinearToSRGB();
   return new Vector3(c.r, c.g, c.b);
 };
+/** Each of your hands' colour: the strike hand gold, the note hand blue. */
+const handColourOf = (side: "left" | "right") =>
+  HAND.strike === side ? GHOST_COLOR.strike : GHOST_COLOR.note;
 /** A hand fades in and out over about this long (s). */
 const SHOW = 0.12;
-/** Your left hand strikes (gold), your right hand chooses the note (blue). */
+/** Both hands. */
 const SIDES = ["left", "right"] as const;
 
 /** Room around the panel for its shadow (CSS px). */
@@ -190,8 +194,8 @@ export const CameraFrame = () => {
           shown: { value: [0, 0] },
           jL: { value: Array.from({ length: 21 }, () => new Vector2()) },
           jR: { value: Array.from({ length: 21 }, () => new Vector2()) },
-          colL: { value: handColour(GHOST_COLOR.strike) },
-          colR: { value: handColour(GHOST_COLOR.note) },
+          colL: { value: handColour(handColourOf("left")) },
+          colR: { value: handColour(handColourOf("right")) },
         },
         vertexShader: vert,
         fragmentShader: frag,

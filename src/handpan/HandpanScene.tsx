@@ -7,6 +7,8 @@
 //   CameraRig.tsx     the views (front, player), fitted to the screen (layout.ts)
 //   Studio.tsx        the room and its light, day and night; the LEDs (led.ts)
 //   Handpan.tsx       the handpan: its fields' glow and ripples, its stands
+//   Hands.tsx         your hands: the note hand's signs (signs.ts), the strike
+//                     hand's pats (pat.ts)
 //   GhostHands.tsx    the ghost hands (ghost.ts)
 //   PointerInput.tsx  taps, clicks and keys
 //   CameraFrame.tsx   your camera in the corner
@@ -21,6 +23,7 @@ import { CameraFrame } from "./CameraFrame";
 import { CameraRig } from "./CameraRig";
 import { GhostHands } from "./GhostHands";
 import { Handpan } from "./Handpan";
+import { Hands } from "./Hands";
 import { Hud } from "./Hud";
 import { PointerInput } from "./PointerInput";
 import { handpan, useHandpanVersion } from "./state";
@@ -50,6 +53,7 @@ export const HandpanScene = () => {
         <Loaded />
       </Suspense>
       {handpan.started ? <HandTracker targetFps={HAND_FPS} /> : null}
+      <Hands />
       <CameraFrame />
       <PointerInput />
       <Hud />

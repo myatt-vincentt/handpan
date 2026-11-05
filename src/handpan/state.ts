@@ -9,6 +9,7 @@ import { VIEWS, type View } from "./layout";
 import { FIELD_MIDI, type FieldId } from "./notes";
 
 export type PlaySource = "strike" | "pointer" | "keys";
+export type Side = "left" | "right";
 
 /** A field struck, for the lights, the ripples and the hands. */
 export type StrikeEvent = {
@@ -165,6 +166,8 @@ export const strike = (field: FieldId, velocity: number, by: PlaySource) => {
   });
   if (handpan.log.length > 60) handpan.log.shift();
   if (by !== "strike" && field <= 6) choose(field);
+  // The first pat by hand closes the how-to card.
+  if (by === "strike" && handpan.howTo) closeHowTo();
 };
 
 /** Every ringing note is damped. */

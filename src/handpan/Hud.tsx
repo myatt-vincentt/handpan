@@ -246,20 +246,20 @@ const STEPS: Step[] = [
   {
     key: "signs",
     pic: <SignIcon sign="two" size={40} />,
-    text: "Right hand: show a sign to choose a note",
+    text: "Right hand: hold up a sign to choose a note",
     tint: GHOST_COLOR.note,
     signs: true,
   },
   {
     key: "pat",
     pic: <PicPat />,
-    text: "Left hand: pat to play it",
+    text: "Left hand: pat down with an open palm to play it",
     tint: GHOST_COLOR.strike,
   },
   {
     key: "fist",
     pic: <PicFist />,
-    text: "Left fist: every note stops",
+    text: "Keep your palm still to let it ring, make a fist to stop",
     tint: GHOST_COLOR.strike,
   },
   { key: "touch", pic: <PicTouch />, text: "Or tap a field, or press 0–6" },

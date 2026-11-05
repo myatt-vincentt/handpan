@@ -1,7 +1,7 @@
 // The two ghost hands:
-//   - the strike hand (gold, your left) hovers palm-down over the field it
-//     last played and pats it when it is struck: it drops flat onto the
-//     steel and lifts back
+//   - the strike hand (gold, your left) hovers palm-down over the chosen
+//     field (a little higher as you lift your palm) and pats it when it is
+//     struck: it drops flat onto the steel and lifts back
 //   - the note hand (blue, your right) waits beside the handpan showing the
 //     sign of the chosen field: a fist for the Ding, one to four fingers,
 //     an open hand, or the rock sign for field 6
@@ -13,6 +13,7 @@ import { Group, Matrix4, Quaternion, Vector3, type Object3D } from "three";
 import { ease } from "./CameraRig";
 import { dressGhost, ghostMaterial } from "./ghost";
 import { pan } from "./Handpan";
+import { hands } from "./Hands";
 import { NOTE_HAND } from "./layout";
 import { MODELS, useOptionalModel } from "./models";
 import { SIGNS, type FieldId, type Sign } from "./notes";
@@ -22,6 +23,8 @@ export const GHOST_COLOR = { strike: "#F2B21C", note: "#2F8CFF" };
 
 /** The strike hand's palm above the steel (m): hovering, and patting. */
 const PALM_HEIGHT = { hover: 0.04, pat: 0.006 };
+/** Your palm's lift (palm lengths, up to `most`) raises the ghost this much per palm length (m), eased over `ease` (s). */
+const LIFT = { most: 1.5, metres: 0.03, ease: 0.08 };
 /** A pat: down, held flat, then back up (s). */
 const PAT = { down: 0.04, hold: 0.1, up: 0.3 };
 /** The strike hand moves to a new field at this rate (1/s). */
@@ -93,6 +96,7 @@ export const GhostHands = () => {
     pos: new Vector3(),
     quat: new Quaternion(),
     started: false,
+    lift: 0,
   });
   const tmp = useMemo(
     () => ({
@@ -116,6 +120,9 @@ export const GhostHands = () => {
       s.field = e.field;
       s.patAt = e.at;
     });
+    // Between strikes it waits over the chosen field.
+    if (handpan.chosen !== null && now - s.patAt > PAT.down + PAT.hold)
+      s.field = handpan.chosen;
     if (strike) {
       const c = pan.centers.get(s.field);
       if (c) {
@@ -131,8 +138,12 @@ export const GhostHands = () => {
         else if (t >= PAT.down && t < PAT.down + PAT.hold) lift = 0;
         else if (t >= PAT.down + PAT.hold)
           lift = ease((t - PAT.down - PAT.hold) / PAT.up);
-        const h =
-          PALM_HEIGHT.pat + (PALM_HEIGHT.hover - PALM_HEIGHT.pat) * lift;
+        // Your palm lifted above its usual height lifts the ghost a little.
+        s.lift +=
+          (Math.min(LIFT.most, hands.strikeLift) - s.lift) *
+          (1 - Math.exp(-dt / LIFT.ease));
+        const hover = PALM_HEIGHT.hover + LIFT.metres * s.lift;
+        const h = PALM_HEIGHT.pat + (hover - PALM_HEIGHT.pat) * lift;
         p.copy(c.position).addScaledVector(n, h);
         // The palm's centre lands on that point.
         off.copy(strike.palm).applyQuaternion(q);
